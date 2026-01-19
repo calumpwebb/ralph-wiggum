@@ -58,6 +58,23 @@ Features:
 - Git-aware (skips git init if already in a repo)
 - Safe and intuitive
 
+### 📡 Realtime Streaming Output
+Watch Claude's output in realtime while Ralph runs:
+
+```bash
+# Start Ralph with streaming enabled
+ralph --stream
+
+# In another terminal, watch live output
+ralph-tail        # Formatted output (assistant text, results)
+ralph-tail --raw  # Raw JSON stream
+```
+
+**How it works:**
+- `--stream` uses Claude CLI's `stream-json` output format for realtime logging
+- Logs update continuously instead of buffering until cycle completion
+- `ralph-tail` parses the JSON and displays readable output
+
 ### 🎛️ Environment Configuration
 Customize state directory location:
 
@@ -121,9 +138,10 @@ ralph --monitor
 - `ralph_loop.sh` - Main autonomous loop with rate limiting
 - `ralph_import.sh` - PRD to Ralph format conversion
 - `ralph_monitor.sh` - Live status dashboard
+- `ralph-tail` - **NEW** Realtime log streaming viewer
 - `lib/circuit_breaker.sh` - Stagnation detection
 - `lib/response_analyzer.sh` - Claude response analysis
-- `lib/config.sh` - **NEW** Centralized configuration
+- `lib/config.sh` - Centralized configuration
 
 ## 🎯 Features
 
@@ -133,9 +151,11 @@ ralph --monitor
 - ✅ Session continuity (preserves context)
 - ✅ Progress tracking and monitoring
 - ✅ PRD to task conversion (via Claude)
-- ✅ **NEW: Centralized .ralph/ directory**
-- ✅ **NEW: In-place import with --current-dir**
-- ✅ **NEW: Environment variable customization**
+- ✅ Centralized .ralph/ directory
+- ✅ In-place import with --current-dir
+- ✅ Environment variable customization
+- ✅ **NEW: Realtime streaming with --stream**
+- ✅ **NEW: ralph-tail log viewer**
 
 ## 🔜 More Coming Soon!
 

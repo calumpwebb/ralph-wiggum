@@ -1,0 +1,49 @@
+#!/bin/bash
+# Tail the most recent Ralph log with nice formatting
+# Usage: ralph-tail [--raw]
+
+LOG_DIR="${RALPH_STATE_DIR:-.ralph}/logs"
+
+# Find most recent log
+LATEST=$(ls -t "$LOG_DIR"/claude_output_*.log 2>/dev/null | head -1)
+
+if [[ -z "$LATEST" ]]; then
+    echo "No log files found in $LOG_DIR"
+    exit 1
+fi
+
+echo "Tailing: $LATEST"
+echo "---"
+
+if [[ "$1" == "--raw" ]]; then
+    tail -f "$LATEST"
+else
+    # Parse stream-json and show assistant output nicely
+    tail -f "$LATEST" 2>/dev/null | while IFS= read -r line; do
+        # Try to parse as JSON
+        type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+
+        case "$type" in
+            assistant)
+                # Extract text content from assistant messages
+                echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null
+                ;;
+            result)
+                # Tool results
+                result=$(echo "$line" | jq -r '.result // empty' 2>/dev/null)
+                if [[ -n "$result" && "$result" != "null" ]]; then
+                    echo -e "\033[0;33m[result]\033[0m $result" | head -c 200
+                    echo
+                fi
+                ;;
+            user)
+                # User/system messages
+                msg=$(echo "$line" | jq -r '.message.content // empty' 2>/dev/null)
+                if [[ -n "$msg" && "$msg" != "null" ]]; then
+                    echo -e "\033[0;36m[user]\033[0m $msg" | head -c 200
+                    echo
+                fi
+                ;;
+        esac
+    done
+fi
