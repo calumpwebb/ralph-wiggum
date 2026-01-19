@@ -97,19 +97,19 @@ setup_tmux_session() {
     
     log_status "INFO" "Setting up tmux session: $session_name"
     
-    # Create new tmux session detached
-    tmux new-session -d -s "$session_name" -c "$(pwd)"
-    
+    # Create new tmux session detached with explicit window name
+    tmux new-session -d -s "$session_name" -n "ralph" -c "$(pwd)"
+
     # Split window vertically to create monitor pane on the right
-    tmux split-window -h -t "$session_name" -c "$(pwd)"
+    tmux split-window -h -t "$session_name:ralph" -c "$(pwd)"
     
     # Start monitor in the right pane
     if command -v ralph-monitor &> /dev/null; then
-        tmux send-keys -t "$session_name:0.1" "ralph-monitor" Enter
+        tmux send-keys -t "$session_name:ralph.1" "ralph-monitor" Enter
     else
-        tmux send-keys -t "$session_name:0.1" "'$ralph_home/ralph_monitor.sh'" Enter
+        tmux send-keys -t "$session_name:ralph.1" "'$ralph_home/ralph_monitor.sh'" Enter
     fi
-    
+
     # Start ralph loop in the left pane (exclude tmux flag to avoid recursion)
     local ralph_cmd
     if command -v ralph &> /dev/null; then
@@ -117,21 +117,18 @@ setup_tmux_session() {
     else
         ralph_cmd="'$ralph_home/ralph_loop.sh'"
     fi
-    
+
     if [[ "$MAX_CALLS_PER_HOUR" != "100" ]]; then
         ralph_cmd="$ralph_cmd --calls $MAX_CALLS_PER_HOUR"
     fi
     if [[ "$PROMPT_FILE" != "PROMPT.md" ]]; then
         ralph_cmd="$ralph_cmd --prompt '$PROMPT_FILE'"
     fi
-    
-    tmux send-keys -t "$session_name:0.0" "$ralph_cmd" Enter
-    
+
+    tmux send-keys -t "$session_name:ralph.0" "$ralph_cmd" Enter
+
     # Focus on left pane (main ralph loop)
-    tmux select-pane -t "$session_name:0.0"
-    
-    # Set window title
-    tmux rename-window -t "$session_name:0" "Ralph: Loop | Monitor"
+    tmux select-pane -t "$session_name:ralph.0"
     
     log_status "SUCCESS" "Tmux session created. Attaching to session..."
     log_status "INFO" "Use Ctrl+B then D to detach from session"
