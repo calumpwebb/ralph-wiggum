@@ -464,8 +464,8 @@ analyze_response() {
 
 # Update exit signals file based on analysis
 update_exit_signals() {
-    local analysis_file=${1:-".response_analysis"}
-    local exit_signals_file=${2:-".exit_signals"}
+    local analysis_file=${1:-"$RALPH_STATE_DIR/response_analysis"}
+    local exit_signals_file=${2:-"$RALPH_STATE_DIR/exit_signals"}
 
     if [[ ! -f "$analysis_file" ]]; then
         echo "ERROR: Analysis file not found: $analysis_file"
@@ -515,7 +515,7 @@ update_exit_signals() {
 
 # Log analysis results in human-readable format
 log_analysis_summary() {
-    local analysis_file=${1:-".response_analysis"}
+    local analysis_file=${1:-"$RALPH_STATE_DIR/response_analysis"}
 
     if [[ ! -f "$analysis_file" ]]; then
         return 1

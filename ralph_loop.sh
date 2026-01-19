@@ -311,8 +311,8 @@ should_exit_gracefully() {
     # but Claude explicitly indicates work is still in progress via RALPH_STATUS block.
     # The exit_signal in .response_analysis represents Claude's explicit intent.
     local claude_exit_signal="false"
-    if [[ -f ".response_analysis" ]]; then
-        claude_exit_signal=$(jq -r '.analysis.exit_signal // false' ".response_analysis" 2>/dev/null || echo "false")
+    if [[ -f "$RALPH_STATE_DIR/response_analysis" ]]; then
+        claude_exit_signal=$(jq -r '.analysis.exit_signal // false' "$RALPH_STATE_DIR/response_analysis" 2>/dev/null || echo "false")
     fi
 
     if [[ $recent_completion_indicators -ge 2 ]] && [[ "$claude_exit_signal" == "true" ]]; then
@@ -452,8 +452,8 @@ build_loop_context() {
     fi
 
     # Add previous loop summary (truncated)
-    if [[ -f ".response_analysis" ]]; then
-        local prev_summary=$(jq -r '.analysis.work_summary // ""' .response_analysis 2>/dev/null | head -c 200)
+    if [[ -f "$RALPH_STATE_DIR/response_analysis" ]]; then
+        local prev_summary=$(jq -r '.analysis.work_summary // ""' "$RALPH_STATE_DIR/response_analysis" 2>/dev/null | head -c 200)
         if [[ -n "$prev_summary" && "$prev_summary" != "null" ]]; then
             context+="Previous: ${prev_summary}"
         fi
@@ -955,10 +955,10 @@ EOF
         local analysis_exit_code=$?
 
         # Update exit signals based on analysis
-        update_exit_signals
+        update_exit_signals "$RALPH_STATE_DIR/response_analysis"
 
         # Log analysis summary
-        log_analysis_summary
+        log_analysis_summary "$RALPH_STATE_DIR/response_analysis"
 
         # Get file change count for circuit breaker
         local files_changed=$(git diff --name-only 2>/dev/null | wc -l || echo 0)
