@@ -1007,8 +1007,10 @@ EOF
         # Check if the failure is due to prompt/context being too long
         elif grep -qi "prompt.*too long\|context.*too long\|token.*limit\|maximum.*context" "$output_file"; then
             log_status "WARN" "📏 Prompt too long - session context exceeded limit"
-            log_status "INFO" "Resetting session to clear context..."
+            log_status "INFO" "Resetting session and disabling --continue to clear context..."
             reset_session "context_overflow"
+            # Disable --continue for next run to force fresh context
+            CLAUDE_USE_CONTINUE=false
             return 4  # Special return code for context overflow (will retry)
         else
             log_status "ERROR" "❌ Claude Code execution failed, check: $output_file"
@@ -1173,10 +1175,11 @@ main() {
                 printf "\n"
             fi
         elif [ $exec_result -eq 4 ]; then
-            # Context overflow - session was reset, retry immediately
+            # Context overflow - session was reset, --continue disabled, retry immediately
             update_status "$loop_count" "$(cat "$CALL_COUNT_FILE")" "context_reset" "retrying"
-            log_status "INFO" "Session reset complete, retrying with fresh context..."
+            log_status "INFO" "Session reset complete, retrying with fresh context (--continue disabled)..."
             sleep 2
+            # Note: CLAUDE_USE_CONTINUE will be re-enabled after successful execution if desired
         else
             update_status "$loop_count" "$(cat "$CALL_COUNT_FILE")" "failed" "error"
             log_status "WARN" "Execution failed, waiting 30 seconds before retry..."
