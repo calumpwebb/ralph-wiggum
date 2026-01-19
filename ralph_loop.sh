@@ -22,6 +22,7 @@ CLAUDE_CODE_CMD="claude"
 MAX_CALLS_PER_HOUR=100  # Adjust based on your plan
 VERBOSE_PROGRESS=false  # Default: no verbose progress updates
 STREAM_OUTPUT=false     # Default: no streaming output (use stream-json for realtime logs)
+LOOP_FOREVER=false      # Default: allow graceful exit on completion detection
 CLAUDE_TIMEOUT_MINUTES=15  # Default: 15 minutes timeout for Claude Code execution
 SLEEP_DURATION=3600     # 1 hour in seconds
 CALL_COUNT_FILE="$RALPH_STATE_DIR/call_count"
@@ -1090,8 +1091,11 @@ main() {
             continue
         fi
 
-        # Check for graceful exit conditions
-        local exit_reason=$(should_exit_gracefully)
+        # Check for graceful exit conditions (unless --loop-forever is set)
+        local exit_reason=""
+        if [[ "$LOOP_FOREVER" != "true" ]]; then
+            exit_reason=$(should_exit_gracefully)
+        fi
         if [[ "$exit_reason" != "" ]]; then
             log_status "SUCCESS" "🏁 Graceful exit triggered: $exit_reason"
             reset_session "project_complete"
@@ -1190,6 +1194,7 @@ Options:
     -m, --monitor           Start with tmux session and live monitor (requires tmux)
     -v, --verbose           Show detailed progress updates during execution
     --stream                Enable realtime streaming output (use tail -f on log files)
+    --loop-forever          Disable graceful exit detection, keep looping indefinitely
     -t, --timeout MIN       Set Claude Code execution timeout in minutes (default: $CLAUDE_TIMEOUT_MINUTES)
     --reset-circuit         Reset circuit breaker to CLOSED state
     --circuit-status        Show circuit breaker status and exit
@@ -1221,6 +1226,7 @@ Examples:
     $0 --monitor --timeout 30   # 30-minute timeout for complex tasks
     $0 --verbose --timeout 5    # 5-minute timeout with detailed progress
     $0 --stream                 # Realtime logs: tail -f .ralph/logs/claude_output_*.log
+    $0 --stream --loop-forever  # Stream logs + never stop looping
     $0 --output-format text     # Use legacy text output format
     $0 --no-continue            # Disable session continuity
     $0 --session-expiry 48      # 48-hour session expiration
@@ -1262,6 +1268,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --stream)
             STREAM_OUTPUT=true
+            shift
+            ;;
+        --loop-forever|--no-exit)
+            LOOP_FOREVER=true
             shift
             ;;
         -t|--timeout)
