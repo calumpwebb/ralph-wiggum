@@ -1004,6 +1004,12 @@ EOF
         if grep -qi "5.*hour.*limit\|limit.*reached.*try.*back\|usage.*limit.*reached" "$output_file"; then
             log_status "ERROR" "🚫 Claude API 5-hour usage limit reached"
             return 2  # Special return code for API limit
+        # Check if the failure is due to prompt/context being too long
+        elif grep -qi "prompt.*too long\|context.*too long\|token.*limit\|maximum.*context" "$output_file"; then
+            log_status "WARN" "📏 Prompt too long - session context exceeded limit"
+            log_status "INFO" "Resetting session to clear context..."
+            reset_session "context_overflow"
+            return 4  # Special return code for context overflow (will retry)
         else
             log_status "ERROR" "❌ Claude Code execution failed, check: $output_file"
             return 1
@@ -1166,6 +1172,11 @@ main() {
                 done
                 printf "\n"
             fi
+        elif [ $exec_result -eq 4 ]; then
+            # Context overflow - session was reset, retry immediately
+            update_status "$loop_count" "$(cat "$CALL_COUNT_FILE")" "context_reset" "retrying"
+            log_status "INFO" "Session reset complete, retrying with fresh context..."
+            sleep 2
         else
             update_status "$loop_count" "$(cat "$CALL_COUNT_FILE")" "failed" "error"
             log_status "WARN" "Execution failed, waiting 30 seconds before retry..."
